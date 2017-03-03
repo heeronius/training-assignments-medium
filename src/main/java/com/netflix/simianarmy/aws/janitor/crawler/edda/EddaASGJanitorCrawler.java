@@ -199,19 +199,10 @@ public class EddaASGJanitorCrawler implements JanitorCrawler {
         addElb(jsonNode, resource, lcNameToCreationTime);
       
         // sets the field for the time when the ASG's traffic is suspended from ELB
-        JsonNode suspendedProcesses = jsonNode.get("suspendedProcesses");
-        for (Iterator<JsonNode> it = suspendedProcesses.getElements(); it.hasNext();) {
-            JsonNode sp = it.next();
-            if ("AddToLoadBalancer".equals(sp.get("processName").getTextValue())) {
-                String suspensionTime = getSuspensionTimeString(sp.get("suspensionReason").getTextValue());
-                if (suspensionTime != null) {
-                    LOGGER.info(String.format("Suspension time of ASG %s is %s",
-                            asgName, suspensionTime));
-                    resource.setAdditionalField(ASG_FIELD_SUSPENSION_TIME, suspensionTime);
-                    break;
-                }
-            }
-        }
+      
+        SetField(resource, asgName, jsonNode);
+        
+        
         Long lastChangeTime = regionToAsgToLastChangeTime.get(region).get(asgName);
         if (lastChangeTime != null) {
             resource.setAdditionalField(ASG_FIELD_LAST_CHANGE_TIME, String.valueOf(lastChangeTime));
@@ -223,6 +214,23 @@ public class EddaASGJanitorCrawler implements JanitorCrawler {
     
     
     
+    private void SetField(Resource resource, Object asgName, JsonNode jsonNode){
+    	 JsonNode suspendedProcesses = jsonNode.get("suspendedProcesses");
+         for (Iterator<JsonNode> it = suspendedProcesses.getElements(); it.hasNext();) {
+             JsonNode sp = it.next();
+             if ("AddToLoadBalancer".equals(sp.get("processName").getTextValue())) {
+                 String suspensionTime = getSuspensionTimeString(sp.get("suspensionReason").getTextValue());
+                 if (suspensionTime != null) {
+                     LOGGER.info(String.format("Suspension time of ASG %s is %s",
+                             asgName, suspensionTime));
+                     resource.setAdditionalField(ASG_FIELD_SUSPENSION_TIME, suspensionTime);
+                     break;
+                 }
+             }
+         }
+    	
+    }
+   
     
     
     
@@ -245,7 +253,7 @@ public class EddaASGJanitorCrawler implements JanitorCrawler {
           JsonNode lc = jsonNode.get("launchConfigurationName");
           if (lc != null) {
               String lcName = lc.getTextValue();
-              JsonNode lcCreationTime = lcNameToCreationTime.get(lcName);
+              Long lcCreationTime = lcNameToCreationTime.get(lcName);
               if (lcName != null) {
                   resource.setAdditionalField(ASG_FIELD_LC_NAME, lcName);
               }
